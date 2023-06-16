@@ -14,7 +14,7 @@ import sys
 class MainApp(QWidget):
     def __init__(self):
         QWidget.__init__(self)
-        self.video_size = QSize(320, 240)
+        self.video_size = QSize(600, 600)
         self.setup_ui()
         self.setup_capture()
 
@@ -47,7 +47,7 @@ class MainApp(QWidget):
 
     def setup_capture(self):
         """Initialize camera."""
-        self.bounding_box = {"top": 300, "left": 600, "width": 600, "height": 400}
+        self.bounding_box = {"top": 300, "left": 600, "width": 600, "height": 600}
         self.sct = mss()
         self.timer = QTimer()
         self.timer.timeout.connect(self.display_video_stream)
@@ -55,6 +55,18 @@ class MainApp(QWidget):
 
     def display_video_stream(self):
         sct_img = np.array(self.sct.grab(self.bounding_box))
+        grey_screen = cv2.cvtColor(sct_img, cv2.COLOR_BGR2GRAY)
+        template = cv2.imread("dino.png")
+        template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+        w, h = template.shape[::-1]
+
+        res = cv2.matchTemplate(grey_screen, template, cv2.TM_CCOEFF_NORMED)
+        threshold = 0.8
+        loc = np.where(res >= threshold)
+        for pt in zip(*loc[::-1]):  # Switch columns and rows
+            # print(pt)
+            cv2.rectangle(sct_img, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
+
         image = QImage(
             sct_img,
             sct_img.shape[1],
@@ -63,7 +75,6 @@ class MainApp(QWidget):
             QImage.Format_RGB32,
         )
         self.image_label.setPixmap(QPixmap.fromImage(image))
-        # cv2.imshow("screen", np.array(sct_img))
 
 
 if __name__ == "__main__":
