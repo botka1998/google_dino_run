@@ -10,6 +10,8 @@ from PySide6.QtWidgets import *
 
 import sys
 
+top = 100
+left = 400
 width = 500
 height = 500
 
@@ -24,7 +26,7 @@ class MainApp(QWidget):
         self.t_cactus_1 = cv2.cvtColor(cv2.imread("cactus_1.png"), cv2.COLOR_BGR2GRAY)
         self.bird_templates = [
             cv2.cvtColor(cv2.imread(f"bird_{i}.png"), cv2.COLOR_BGR2GRAY)
-            for i in range(3)
+            for i in range(4)
         ]
 
     def handle_x_slider_value_change(self, x):
@@ -39,9 +41,11 @@ class MainApp(QWidget):
         self.image_label.setFixedSize(self.video_size)
 
         self.x_pos_slider = QSlider(Qt.Horizontal, self)
+        self.x_pos_slider.setValue(int(left * 100 / 1920))
         self.x_pos_slider.valueChanged.connect(self.handle_x_slider_value_change)
         self.y_pos_slider = QSlider(Qt.Horizontal, self)
         self.y_pos_slider.valueChanged.connect(self.handle_y_slider_value_change)
+        self.y_pos_slider.setValue(int(top * 100 / 1080))
 
         self.quit_button = QPushButton("Quit")
         self.quit_button.clicked.connect(self.close)
@@ -56,7 +60,7 @@ class MainApp(QWidget):
 
     def setup_capture(self):
         """Initialize camera."""
-        self.bounding_box = {"top": 300, "left": 600, "width": 500, "height": height}
+        self.bounding_box = {"top": top, "left": left, "width": 500, "height": height}
         self.sct = mss()
         self.timer = QTimer()
         self.timer.timeout.connect(self.display_video_stream)
