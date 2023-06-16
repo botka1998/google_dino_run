@@ -1,0 +1,5 @@
+numpy
+pyside6
+opencv-python
+mss
+pillow
