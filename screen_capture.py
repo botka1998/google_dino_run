@@ -19,6 +19,7 @@ height = 500
 class MainApp(QWidget):
     def __init__(self):
         QWidget.__init__(self, None, Qt.WindowStaysOnTopHint)
+        self.draw = True
         self.video_size = QSize(width, height)
         self.bounding_box = {"top": top, "left": left, "width": 500, "height": height}
         self.setup_ui()
@@ -32,7 +33,6 @@ class MainApp(QWidget):
             cv2.cvtColor(cv2.imread(f"cactus_{i}.png"), cv2.COLOR_BGR2GRAY)
             for i in range(7)
         ]
-        self.draw = True
 
     def handle_x_slider_value_change(self, x):
         self.bounding_box["left"] = int(1920 * x / 100)
@@ -51,8 +51,12 @@ class MainApp(QWidget):
         self.quit_button.clicked.connect(self.close)
 
         self.main_layout.addWidget(self.quit_button)
-
+        self.b_draw_checkbox = QCheckBox("Should draw:", self)
+        self.b_draw_checkbox.stateChanged.connect(self.set_draw)
         self.setLayout(self.main_layout)
+
+    def set_draw(self, value):
+        self.draw = value
 
     def add_sliders(self):
         self.x_pos_slider = QSlider(Qt.Horizontal, self)
@@ -72,7 +76,8 @@ class MainApp(QWidget):
         self.sct = mss()
         self.timer = QTimer()
         self.timer.timeout.connect(self.display_video_stream)
-        self.timer.start(15)
+        delay = 40 if self.draw else 15
+        self.timer.start(delay)
 
     def get_frame(self):
         self.current_frame = np.array(self.sct.grab(self.bounding_box))
