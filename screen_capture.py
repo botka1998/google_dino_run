@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 from mss import mss
-from PIL import Image
+from PIL import Image, ImageDraw
 
 
 from PySide6.QtCore import *
@@ -12,8 +12,8 @@ import sys
 
 top = 100
 left = 400
-width = 500
-height = 500
+width = 400
+height = 300
 
 
 class MainApp(QWidget):
@@ -76,17 +76,21 @@ class MainApp(QWidget):
         self.sct = mss()
         self.timer = QTimer()
         self.timer.timeout.connect(self.display_video_stream)
-        delay = 40 if self.draw else 15
+        delay = 10 if self.draw else 10
         self.timer.start(delay)
 
     def get_frame(self):
         self.current_frame = np.array(self.sct.grab(self.bounding_box))
         self.current_grey_frame = cv2.cvtColor(self.current_frame, cv2.COLOR_BGR2GRAY)
+        self.current_pil_frame = Image.fromarray(self.current_frame)
+        self.drawer = ImageDraw.Draw(self.current_pil_frame)
 
         return self.current_frame
 
     def detect_dino(self):
         dino = self.detect_object(self.t_dino)
+        if dino is None:
+            return
         if self.draw:
             self.draw_bounding_box(
                 dino,
@@ -96,6 +100,8 @@ class MainApp(QWidget):
         detected_birds = map(self.detect_object, self.bird_templates)
         if self.draw:
             for bird in detected_birds:
+                if bird is None:
+                    continue
                 self.draw_bounding_box(bird, color=(0, 0, 255))
 
     def detect_cactii(self):
@@ -103,26 +109,35 @@ class MainApp(QWidget):
             self.detect_object,
             self.cactii_templates,
         )
+
         if self.draw:
             for cactus in detected_cactii:
+                if cactus is None:
+                    continue
                 self.draw_bounding_box(cactus, color=(0, 255, 0), thicc=1)
 
     def draw_bounding_box(self, detected_object, color=(255, 255, 255), thicc=2):
         w, h = detected_object["w"], detected_object["h"]
-        for pt in detected_object["points"]:
-            cv2.rectangle(self.current_frame, pt, (pt[0] + w, pt[1] + h), color, thicc)
+        x, y = detected_object["point"]
+
+        shape = [(x, y), (w + x, h + y)]
+
+        self.drawer.rectangle(shape, fill=None, outline="red")
 
     def detect_object(self, template, threshold=0.85):
         w, h = template.shape[::-1]
         res = cv2.matchTemplate(self.current_grey_frame, template, cv2.TM_CCOEFF_NORMED)
         loc = np.where(res >= threshold)
-        return {"points": zip(*loc[::-1]), "w": w, "h": h}
+        if loc[0].size == 0:
+            return None
+        return {"point": list(zip(*loc[::-1]))[0], "w": w, "h": h}
 
     def display_video_stream(self):
         self.get_frame()
         self.detect_dino()
         self.detect_bird()
         self.detect_cactii()
+        self.current_frame = np.array(self.current_pil_frame)
         image = QImage(
             self.current_frame,
             self.current_frame.shape[1],
